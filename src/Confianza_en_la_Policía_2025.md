@@ -35,9 +35,9 @@ h3 {
 
 ---
 
-  Este observatorio de datos presenta un análisis descriptivo de la percepción ciudadana sobre la Policía, con énfasis en los niveles de confianza, legitimidad institucional y evaluación del desempeño. A partir de datos estructurados y visualizaciones interactivas, se busca ofrecer una herramienta que permita explorar cómo varían estas percepciones entre distintos grupos poblacionales y territorios. Este análisis se basa en datos de encuesta estructurados, utilizando estadística descriptiva (promedios, distribuciones y comparaciones) sin inferencia causal.
+  <p>Este observatorio de datos presenta un análisis descriptivo de la percepción ciudadana sobre la Policía, con énfasis en los niveles de confianza, legitimidad institucional y evaluación del desempeño. A partir de datos estructurados y visualizaciones interactivas, se busca ofrecer una herramienta que permita explorar cómo varían estas percepciones entre distintos grupos poblacionales y territorios. Este análisis se basa en datos de encuesta estructurados, utilizando estadística descriptiva (promedios, distribuciones y comparaciones) sin inferencia causal.</p>
 
-  El objetivo principal de este informe descriptivo es facilitar la comprensión de patrones y brechas en la confianza hacia la Policía, sin pretender establecer relaciones causales, sino proporcionando evidencia empírica que apoye la toma de decisiones, el análisis académico y la formulación de políticas públicas. A través de filtros dinámicos y múltiples enfoques visuales, se puede identificar diferencias relevantes según variables sociodemográficas y geográficas.
+  <p>El objetivo principal de este informe descriptivo es facilitar la comprensión de patrones y brechas en la confianza hacia la Policía, sin pretender establecer relaciones causales, sino proporcionando evidencia empírica que apoye la toma de decisiones, el análisis académico y la formulación de políticas públicas. A través de filtros dinámicos y múltiples enfoques visuales, se puede identificar diferencias relevantes según variables sociodemográficas y geográficas.</p>
  
  ---
 
@@ -45,9 +45,9 @@ h3 {
 
 ---
 
-  Esta sección presenta una visión agregada del nivel de confianza en la Policía, a través de indicadores clave y la distribución de respuestas de los encuestados. Los KPIs permiten identificar rápidamente el nivel promedio de confianza, así como la proporción de percepciones positivas y negativas. La distribución de los niveles de confianza ofrece una lectura más detallada del comportamiento de la variable, evidenciando si las respuestas se concentran en valores extremos o intermedios. En conjunto, estos elementos permiten establecer una línea base clara sobre la percepción general de la ciudadanía, la cual sirve como punto de partida para los análisis posteriores.
+  <p>Esta sección presenta una visión agregada del nivel de confianza en la Policía, a través de indicadores clave y la distribución de respuestas de los encuestados. Los KPIs permiten identificar rápidamente el nivel promedio de confianza, así como la proporción de percepciones positivas y negativas. La distribución de los niveles de confianza ofrece una lectura más detallada del comportamiento de la variable, evidenciando si las respuestas se concentran en valores extremos o intermedios. En conjunto, estos elementos permiten establecer una línea base clara sobre la percepción general de la ciudadanía, la cual sirve como punto de partida para los análisis posteriores.</p>
 
-  Los filtros de género, etnia y grupo de edad permiten desagregar la información y observar cómo varía la confianza en la Policía entre distintos segmentos de la población. Al seleccionar una categoría específica, todas las visualizaciones del dashboard se actualizan dinámicamente, mostrando únicamente los datos correspondientes a ese grupo.
+  <p>Los filtros de género, etnia y grupo de edad permiten desagregar la información y observar cómo varía la confianza en la Policía entre distintos segmentos de la población. Al seleccionar una categoría específica, todas las visualizaciones del dashboard se actualizan dinámicamente, mostrando únicamente los datos correspondientes a ese grupo.</p>
 
   <!-- Load data -->
   <!-- 1. histogramas interactivos (filtardos de confianza) -->
