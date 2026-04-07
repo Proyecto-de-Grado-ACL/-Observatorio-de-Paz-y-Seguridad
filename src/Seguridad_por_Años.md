@@ -126,6 +126,8 @@ const dataCore = data.filter(d => YEARS_VICTIMA.includes(d.year));
 
 ---
 
+<p>El índice de victimización comparable (exc13–exc16) permite analizar la evolución de la inseguridad en Colombia utilizando únicamente los delitos medidos de forma consistente en el tiempo. Esto garantiza comparabilidad longitudinal y evita sesgos derivados de cambios en el cuestionario. La métrica refleja el porcentaje de personas que reportaron haber sido víctimas de al menos uno de estos delitos en los últimos 12 meses.</p>
+
 ```js
 // Utility functions
 function pctSi(arr, variable) {
@@ -241,14 +243,6 @@ const deltaClass =
 <p>
   <strong>Resumen de filtros:</strong>
   ${region} | ${zona} | ${sexo} | ${etid}
-</p>
-
-<p>
-  El índice de victimización comparable se construye a partir de cuatro preguntas presentes
-  en todos los años de la serie (2004–2018): extorsión (exc13), amenazas (exc14), agresión
-  física (exc15) e intento de robo a la vivienda (exc16). Una persona se clasifica como
-  víctima si respondió afirmativamente a al menos una de estas cuatro preguntas. Los años
-  2015 y 2017 no cuentan con datos disponibles.
 </p>
 
 <!--KPIs Styles-->
@@ -380,6 +374,8 @@ Plot.plot({
 })
 ```
 
+<p>Entre 2004 y 2018, la victimización muestra una tendencia general a la baja con fluctuaciones intermedias. Se observa una reducción importante entre 2004 (8.5%) y 2009 (2.9%), seguida de una estabilización con leves repuntes alrededor de 2012 (5.6%) y 2014 (5.0%). Posteriormente, la tendencia vuelve a moderarse, alcanzando 3.5% en 2018. Estos resultados sugieren que, si bien hubo mejoras estructurales en los niveles de seguridad durante la década analizada, la victimización no desaparece sino que presenta ciclos de repunte asociados posiblemente a dinámicas locales o cambios en las modalidades delictivas.</p>
+
 ---
 
 ```js
@@ -419,7 +415,10 @@ Inputs.table(tablaRegion, {
   }
 })
 ```
+<p>El análisis territorial permite identificar heterogeneidad en la victimización, tanto por región geográfica como por tipo de zona (urbana vs. rural). Esto es clave para entender que la seguridad no evoluciona de manera uniforme en el país. Las regiones presentan trayectorias diferenciadas y volátiles. Algunas, como Pacífica y Bogotá D.C., muestran picos pronunciados en ciertos años, mientras que otras como Andina evidencian una tendencia más estable o decreciente.
 
+En general, existe alta variabilidad interanual, lo que indica sensibilidad a contextos locales, No hay una convergencia clara entre regiones, lo que sugiere desigualdad territorial persistente en materia de seguridad y hacia los años finales, varias regiones tienden a niveles más cercanos entre sí, aunque sin eliminar completamente las brechas.
+</p>
 ---
 
 ```js
@@ -543,10 +542,14 @@ const serieRegionFiltrada = regionChart === "Todas"
   display(div);
 }
 ```
+<p>Por otro lado, la comparación entre zonas urbanas y rurales muestra diferencias consistentes, ay que la victimización urbana tiende a ser más alta en varios años iniciales, reflejando mayor exposición a delitos como robo o extorsión. Sin embargo, la brecha no es constante porque en algunos años las diferencias se reducen o incluso se invierten. Se puede ver que ambas series muestran una tendencia general descendente, lo que refuerza la mejora agregada observada en el indicador general; esto sugiere que las dinámicas de inseguridad están influenciadas tanto por el entorno urbano como por factores específicos del territorio rural.</p>
 
 ---
 ## Sección 2: Tipología de la inseguridad
 ---
+
+<p>Esta sección analiza la evolución de los distintos tipos de victimización reportados por los ciudadanos en los últimos 12 meses, desagregando el fenómeno de la inseguridad en categorías específicas: extorsión, amenazas, agresión física, intento de robo a vivienda, fraude/estafa y otros delitos. Este enfoque permite identificar no solo la magnitud del problema, sino también los cambios en su composición a lo largo del tiempo. Adicionalmente, se incorpora la percepción de corrupción entre los políticos (exc07), como una dimensión complementaria que refleja el entorno institucional en el que se desarrolla la seguridad ciudadana</p>
+
 
 ```js
 // Sección 2: configuración
@@ -681,6 +684,8 @@ Plot.plot({
 ```
 ---
 
+<p>Con respecto a los resultados muestran una estructura claramente diferenciada entre tipos de delito, en Fraude / estafa aparece como el delito más prevalente durante gran parte del periodo, con niveles significativamente superiores al resto, alcanzando picos cercanos al 25% (2009) y manteniéndose en niveles elevados incluso en años recientes. Esto sugiere un desplazamiento progresivo hacia delitos no violentos pero de alto impacto económico. En Amenazas constituyen el segundo tipo de victimización más frecuente, con una evolución relativamente estable entre 4% y 7%, lo que indica persistencia de formas de intimidación como mecanismo de control o presión. Por otro lado Extorsión presenta niveles moderados (alrededor de 3%–5%), con ligeras variaciones, reflejando su carácter estructural en ciertos contextos territoriales. Si nos referimos a Agresión física y intento de robo a vivienda muestran niveles más bajos y una tendencia general decreciente, lo que podría estar asociado a mejoras en seguridad urbana tradicional o cambios en patrones delictivos. Finalmente otros delitos mantienen una incidencia marginal, pero con presencia constante, lo que evidencia la diversidad de experiencias de victimización no capturadas en las categorías principales. En conjunto, se observa una transición desde delitos más visibles y violentos hacia formas más sofisticadas o menos visibles, particularmente relacionadas con fraude.</p>
+
   ${selExc07Linea}
 
 ```js
@@ -722,6 +727,8 @@ Plot.plot({
   ]
 })
 ```
+
+<p>La percepción de corrupción entre políticos presenta niveles elevados y persistentes a lo largo del tiempo, en las categorías “algo generalizada” y “muy generalizada” concentran consistentemente la mayor proporción de respuestas, superando en varios años el 50% de los encuestados. Existe una tendencia creciente entre 2008 y 2014, donde la percepción de corrupción se intensifica, en años recientes (2016–2023), aunque se observa cierta fluctuación, la percepción sigue siendo mayoritariamente negativa, con más del 40%–50% ubicándose en niveles altos de corrupción. Por otro lado, las categorías de baja corrupción (“nada” o “poco generalizada”) permanecen en niveles muy reducidos, lo que indica una baja confianza estructural en la integridad del sistema político.</p>
 
 ---
 ## Sección 3: Contexto del conflicto armado
@@ -815,12 +822,21 @@ La visualización muestra la evolución temporal del porcentaje de hogares afect
     ]
   })
 ```
+<p>Las variables asociadas al contexto del conflicto armado permiten dimensionar el impacto directo que este ha tenido sobre los hogares colombianos a lo largo del tiempo, a partir de tres dimensiones clave: la pérdida de un familiar por muerte o desaparición (wc1), el desplazamiento forzado (wc2) y la salida del país como consecuencia del conflicto (wc3). En conjunto, estas métricas ofrecen una aproximación a las huellas sociales persistentes del conflicto, más allá de los indicadores tradicionales de violencia.
 
+Los resultados muestran que la afectación por conflicto armado ha sido significativa y relativamente estable en el tiempo, especialmente en las dimensiones de pérdida de familiares y desplazamiento. La proporción de hogares que reportan haber perdido un familiar o tener un desaparecido (wc1) se mantiene en niveles elevados durante todo el periodo analizado, oscilando entre aproximadamente 21% y 28%, con un incremento progresivo hacia los años posteriores a 2010 y un pico cercano al 28% en 2014. Aunque posteriormente se observa una leve disminución, los niveles siguen siendo altos, lo que evidencia la persistencia del impacto acumulado del conflicto en la memoria y estructura de los hogares.
+
+Por su parte, el desplazamiento forzado (wc2) presenta una dinámica similar, aunque con niveles ligeramente inferiores. Este indicador fluctúa entre aproximadamente 16% y 26%, mostrando una tendencia creciente desde finales de la década de 2000 hasta mediados de la década de 2010. En años más recientes, si bien se observa cierta estabilización, el fenómeno continúa afectando a una proporción considerable de la población, reflejando que el desplazamiento ha sido una de las principales manifestaciones del conflicto en términos sociales y territoriales.
+
+En contraste, la variable relacionada con la salida del país por razones del conflicto (wc3) presenta niveles considerablemente más bajos, situándose generalmente entre 4% y 10%. No obstante, su evolución muestra una tendencia creciente en los años más recientes, alcanzando su valor más alto hacia el final del periodo analizado. Esto podría indicar un aumento en estrategias de movilidad internacional como respuesta a contextos de inseguridad o falta de oportunidades asociadas al conflicto.
+
+En conjunto, estos resultados evidencian que, aunque ciertos indicadores de violencia directa han disminuido en el tiempo, el impacto del conflicto armado sigue siendo profundo y persistente en los hogares colombianos. Las altas proporciones de afectación, particularmente en términos de pérdida de familiares y desplazamiento, sugieren que las consecuencias del conflicto trascienden los periodos de mayor intensidad y continúan influyendo en las condiciones sociales del país, consolidándose como un elemento estructural en la experiencia de seguridad y bienestar de la población.</p>
 
 ---
 ## Sección 4: Percepción institucional
 ---
-<p>
+<p>La percepción institucional constituye un componente fundamental para comprender la relación entre ciudadanía, Estado y seguridad. En esta sección se analizan tres dimensiones clave: la satisfacción con el funcionamiento de la democracia (pn4), el grado en que los ciudadanos consideran que los gobernantes se interesan por la gente (eff1) y la autopercepción sobre la comprensión de los asuntos políticos (eff2). En conjunto, estos indicadores permiten evaluar tanto la legitimidad del sistema político como la percepción de eficacia y cercanía institucional.
+
 Analiza la satisfacción con la democracia (<strong>pn4</strong>) y la eficacia política interna, medida por el grado de acuerdo con que los gobernantes se interesan por la gente (<strong>eff1</strong>) y que el encuestado entiende los asuntos políticos (<strong>eff2</strong>). eff1 y eff2 usan una escala de 1 (Muy en desacuerdo) a 7 (Muy de acuerdo).
 </p>
 
@@ -930,6 +946,7 @@ Analiza la satisfacción con la democracia (<strong>pn4</strong>) y la eficacia 
 ]
   })
 ```
+<p>En el caso de la satisfacción con la democracia, los resultados muestran un deterioro progresivo a lo largo del tiempo. Durante los primeros años analizados (2004–2012), predominan las categorías de satisfacción, con más del 50% de los encuestados ubicándose como “satisfechos” y una proporción relativamente baja de insatisfacción extrema. Sin embargo, a partir de 2013 se observa un punto de quiebre, donde aumentan de manera significativa las categorías de insatisfacción. Este cambio se consolida en años posteriores, particularmente en 2020, donde la proporción de personas “muy insatisfechas” alcanza su nivel más alto, y las categorías negativas superan ampliamente a las positivas. Aunque en los años más recientes se evidencia una leve recuperación, la insatisfacción continúa siendo predominante, lo que refleja un debilitamiento sostenido en la percepción del funcionamiento democrático.</p>
 
 <div class="aviso-nd">
   eff1 y eff2 no disponibles en 2004–2008 ni en 2021. La línea punteada marca el punto medio de la escala (4).
@@ -1009,6 +1026,12 @@ Analiza la satisfacción con la democracia (<strong>pn4</strong>) y la eficacia 
   display(container);
 }
 ```
+<p>Por otro lado, la percepción sobre el interés de los gobernantes por la ciudadanía (eff1) se mantiene consistentemente por debajo del punto medio de la escala (4), lo que indica una percepción generalizada de desconexión entre el Estado y la población. A lo largo del periodo analizado, este indicador presenta una caída inicial hasta 2014, seguida de una recuperación parcial en 2018, pero sin alcanzar niveles que sugieran una valoración positiva. En los años más recientes, la tendencia vuelve a estabilizarse en niveles bajos, reforzando la idea de una confianza limitada en la capacidad de los gobernantes para representar los intereses ciudadanos.
+
+En contraste, la autopercepción de comprensión de los asuntos políticos (eff2) se mantiene relativamente estable y cercana al punto medio de la escala, con valores ligeramente superiores a los observados en eff1. Esto sugiere que, aunque los ciudadanos no perciben a los gobernantes como cercanos o receptivos, sí consideran tener cierto nivel de entendimiento sobre la política. No obstante, esta comprensión no se traduce necesariamente en mayor confianza institucional, lo que evidencia una brecha entre conocimiento político y legitimidad del sistema.
+
+En conjunto, los resultados de esta sección reflejan un escenario de debilitamiento en la confianza institucional, caracterizado por una creciente insatisfacción con la democracia y una percepción persistente de desconexión entre gobernantes y ciudadanía. Aunque los niveles de comprensión política se mantienen relativamente estables, estos no parecen ser suficientes para contrarrestar la percepción negativa del funcionamiento institucional, lo que puede tener implicaciones importantes en términos de participación, legitimidad y gobernabilidad.</p>
+
 ---
 ## Sección 5: Participación Social
 ---
@@ -1028,18 +1051,25 @@ Mide la frecuencia de participación en espacios comunitarios y cívicos: organi
     "Una vez a la semana"
   ];
 
-    const YEARS_PART = [...new Set([
+  // FIX: usar array de números directamente, NO .map(String)
+  const YEARS_PART = [...new Set([
     ...YEARS_CP6_CP13,
     ...YEARS_COLCP8A
   ])].sort((a, b) => a - b);
 
-  const selYearPart = Inputs.select(YEARS_PART.map(String), {
+  // FIX: selector con números, no strings
+  const selYearPart = Inputs.select(YEARS_PART, {
     label: "Año",
-    value: "2018"
+    value: 2018
   });
+```
 
-  const yearPart = Number(Generators.input(selYearPart));
+```js
+  // FIX: celda reactiva separada — ya devuelve número porque el selector usa números
+  const yearPart = Generators.input(selYearPart);
+```
 
+```js
   function distribucionFrecuencia(variable, year, yearsValidos) {
     if (!yearsValidos.includes(year)) return [];
 
