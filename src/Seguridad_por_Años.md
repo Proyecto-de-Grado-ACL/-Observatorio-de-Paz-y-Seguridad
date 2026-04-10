@@ -93,8 +93,15 @@ const data = clean.map(d => {
   const exc16 = siNo(d.exc16);
   const exc18 = siNo(d.exc18);
   const exc20 = siNo(d.exc20);
-  // exc07 es escala de texto — se preserva tal cual
-  const exc07 = (d.exc07 == null || d.exc07 === "") ? null : String(d.exc07).trim();
+  // exc07 es escala de texto — se normaliza unificando categorías equivalentes
+  const exc07raw = (d.exc07 == null || d.exc07 === "") ? null : String(d.exc07).trim();
+  const exc07NormMap = {
+    "Ninguno":                   "Nada generalizada",
+    "Menos de la mitad":         "Poco generalizada",
+    "La mitad de los políticos": "Algo generalizada",
+    "Más de la mitad":           "Muy generalizada"
+  };
+  const exc07 = exc07raw === null ? null : (exc07NormMap[exc07raw] ?? exc07raw);
 
   const coreFlags = [exc13, exc14, exc15, exc16].filter(x => x !== null);
 
@@ -331,7 +338,7 @@ Plot.plot({
   },
   y: {
     label: "% víctimas",
-    domain: [0, 50],
+    domain: [0, 20],
     grid: true
   },
   marks: [
@@ -374,7 +381,207 @@ Plot.plot({
 })
 ```
 
+
 <p>Entre 2004 y 2018, la victimización muestra una tendencia general a la baja con fluctuaciones intermedias. Se observa una reducción importante entre 2004 (8.5%) y 2009 (2.9%), seguida de una estabilización con leves repuntes alrededor de 2012 (5.6%) y 2014 (5.0%). Posteriormente, la tendencia vuelve a moderarse, alcanzando 3.5% en 2018. Estos resultados sugieren que, si bien hubo mejoras estructurales en los niveles de seguridad durante la década analizada, la victimización no desaparece sino que presenta ciclos de repunte asociados posiblemente a dinámicas locales o cambios en las modalidades delictivas.</p>
+
+---
+
+### Análisis territorial — % victimización por región
+
+```js
+// GeoJSON Colombia (departamentos)
+const colombiaGeo = await fetch(
+  "https://gist.githubusercontent.com/john-guerra/43c7656821069d00dcbc/raw/be6a6e239cd5b5b803c6e7c2ec405b793a9064dd/Colombia.geo.json"
+).then(r => r.json());
+```
+
+```js
+// Mapeo departamento → región (estratopri)
+const REGION_MAP_VICTIMA = {
+  "ANTIOQUIA": "Andina", "BOYACA": "Andina", "CALDAS": "Andina",
+  "CUNDINAMARCA": "Andina", "HUILA": "Andina", "NORTE DE SANTANDER": "Andina",
+  "QUINDIO": "Andina", "RISARALDA": "Andina", "SANTANDER": "Andina", "TOLIMA": "Andina",
+  "ATLANTICO": "Caribe", "BOLIVAR": "Caribe", "CESAR": "Caribe", "CORDOBA": "Caribe",
+  "LA GUAJIRA": "Caribe", "MAGDALENA": "Caribe", "SUCRE": "Caribe", "SAN ANDRES": "Caribe",
+  "CAUCA": "Pacífica", "CHOCO": "Pacífica", "NARIÑO": "Pacífica", "VALLE DEL CAUCA": "Pacífica",
+  "AMAZONAS": "Orinoquía-Amazonía", "ARAUCA": "Orinoquía-Amazonía", "CAQUETA": "Orinoquía-Amazonía",
+  "CASANARE": "Orinoquía-Amazonía", "GUAINIA": "Orinoquía-Amazonía", "GUAVIARE": "Orinoquía-Amazonía",
+  "META": "Orinoquía-Amazonía", "PUTUMAYO": "Orinoquía-Amazonía", "VAUPES": "Orinoquía-Amazonía",
+  "VICHADA": "Orinoquía-Amazonía",
+  "BOGOTA": "Bogotá D.C.", "BOGOTÁ": "Bogotá D.C.", "BOGOTA D.C.": "Bogotá D.C."
+};
+
+// Pesos poblacionales DANE 2025 para cálculo ponderado
+const REGION_PESOS_VICTIMA = {
+  "Andina": 22800000, "Bogotá D.C.": 7942867,
+  "Caribe": 11500000, "Pacífica": 5800000, "Orinoquía-Amazonía": 2014000
+};
+const TOTAL_POB_VICTIMA = d3.sum(Object.values(REGION_PESOS_VICTIMA));
+
+// Centroides aproximados por región para etiquetas
+const REGION_CENTROIDS_VICTIMA = [
+  { region: "Andina",             x: -74.5,  y:  5.5  },
+  { region: "Caribe",             x: -75.0,  y: 10.2  },
+  { region: "Pacífica",           x: -77.2,  y:  4.5  },
+  { region: "Orinoquía-Amazonía", x: -71.5,  y:  2.0  },
+  { region: "Bogotá D.C.",        x: -74.08, y:  4.71 }
+];
+```
+
+```js
+// Selector de año para el mapa — usa YEARS_VICTIMA
+const selYearMapa = Inputs.select(YEARS_VICTIMA, {
+  label: "Año (mapa)",
+  value: 2018
+});
+```
+
+```js
+const yearMapa = Generators.input(selYearMapa);
+```
+
+```js
+// % victimización por región para el año seleccionado
+const victByRegionMapa = (() => {
+  const sub = dataCore.filter(d => d.year === yearMapa && d.estratopri != null);
+  const rollup = d3.rollups(sub, v => pctVictima(v), d => d.estratopri);
+  return new Map(rollup);
+})();
+
+// % victimización ponderado por población para el año
+const pctPonderadoMapa = (() => {
+  let sum = 0, totalPeso = 0;
+  for (const [region, pesos] of Object.entries(REGION_PESOS_VICTIMA)) {
+    const pct = victByRegionMapa.get(region);
+    if (pct != null) { sum += pct * pesos; totalPeso += pesos; }
+  }
+  return totalPeso > 0 ? sum / totalPeso : null;
+})();
+
+// Rango para la escala de color (sobre todos los años para escala fija)
+const victExtent = (() => {
+  const todos = YEARS_VICTIMA.flatMap(year => {
+    const sub = dataCore.filter(d => d.year === year && d.estratopri != null);
+    return d3.rollups(sub, v => pctVictima(v), d => d.estratopri)
+      .map(([, pct]) => pct).filter(v => v != null);
+  });
+  return d3.extent(todos);
+})();
+
+// Añadir % victimización a features del GeoJSON
+const geoVictima = {
+  ...colombiaGeo,
+  features: colombiaGeo.features.map(f => {
+    const dpto = f.properties.NOMBRE_DPT?.toUpperCase().trim();
+    const region = REGION_MAP_VICTIMA[dpto] ?? null;
+    const pct = region ? victByRegionMapa.get(region) : null;
+    return { ...f, properties: { ...f.properties, region, pct } };
+  })
+};
+```
+
+<div style="margin-bottom: 12px;">${selYearMapa}</div>
+
+```js
+{
+  // Escala de color fija (rojo=baja, verde=alta victimización invertido: rojo=alta, azul=baja)
+  const colorScaleMapa = d3.scaleSequential()
+    .domain(victExtent)
+    .interpolator(d3.interpolateYlOrRd);  // amarillo→rojo = baja→alta victimización
+
+  function mapaVictimizacion({width} = {}) {
+    const height = width * 1.15;
+    const projection = d3.geoMercator().fitSize([width, height], geoVictima);
+    const path = d3.geoPath(projection);
+
+    const labelData = REGION_CENTROIDS_VICTIMA.map(c => {
+      const pct = victByRegionMapa.get(c.region);
+      const [px, py] = projection([c.x, c.y]);
+      return { ...c, px, py, pct };
+    }).filter(d => d.pct != null);
+
+    const svg = d3.create("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .style("font-family", "sans-serif");
+
+    // Departamentos coloreados
+    svg.selectAll("path")
+      .data(geoVictima.features)
+      .join("path")
+      .attr("d", path)
+      .attr("fill", d => d.properties.pct != null ? colorScaleMapa(d.properties.pct) : "#444")
+      .attr("stroke", "white")
+      .attr("stroke-width", 0.5)
+      .append("title")
+      .text(d => {
+        const r = d.properties.region ?? "Sin datos";
+        const p = d.properties.pct != null ? d.properties.pct.toFixed(1) + "%" : "N/D";
+        return `${d.properties.NOMBRE_DPT}\nRegión: ${r}\n% víctimas (${yearMapa}): ${p}`;
+      });
+
+    // Etiquetas por región
+    labelData.forEach(d => {
+      const g = svg.append("g").attr("transform", `translate(${d.px},${d.py})`);
+      g.append("rect")
+        .attr("x", -54).attr("y", -28).attr("width", 0).attr("height", 0)
+        .attr("rx", 6).attr("fill", "rgba(0,0,0,0.70)");
+      g.append("text")
+        .attr("text-anchor", "middle").attr("y", -12).attr("fill", "white")
+        .attr("font-size", d.region === "Bogotá D.C." ? "8px" : "9px")
+        .attr("font-weight", "bold").text(d.region);
+      g.append("text")
+        .attr("text-anchor", "middle").attr("y", 5)
+        .attr("fill", "white")
+        .attr("font-size", "12px").attr("font-weight", "bold")
+        .text(d.pct.toFixed(1) + "%");
+    });
+
+    // Leyenda
+    const lw = Math.min(180, width * 0.38), lh = 11;
+    const lx = width - lw - 14, ly = height - 48;
+    const defs = svg.append("defs");
+    const grad = defs.append("linearGradient").attr("id", "vict-grad");
+    d3.range(0, 1.01, 0.1).forEach(t => {
+      grad.append("stop").attr("offset", `${t*100}%`)
+        .attr("stop-color", colorScaleMapa(victExtent[0] + t*(victExtent[1]-victExtent[0])));
+    });
+    const lg = svg.append("g").attr("transform", `translate(${lx},${ly})`);
+    lg.append("rect").attr("width", lw).attr("height", lh).attr("rx", 3).attr("fill", "url(#vict-grad)");
+    lg.append("text").attr("y", lh+13).attr("fill", "currentColor").attr("font-size", "9px")
+      .text(victExtent[0].toFixed(1) + "% (baja)");
+    lg.append("text").attr("x", lw).attr("y", lh+13).attr("text-anchor", "end")
+      .attr("fill", "currentColor").attr("font-size", "9px").text(victExtent[1].toFixed(1) + "% (alta)");
+    lg.append("text").attr("x", lw/2).attr("y", -5).attr("text-anchor", "middle")
+      .attr("fill", "currentColor").attr("font-size", "9px").text("% victimización por región");
+
+    return svg.node();
+  }
+
+  // KPI ponderado junto al mapa
+  const kpiDiv = document.createElement("div");
+  kpiDiv.style.cssText = "font-size:13px; margin-bottom:10px; color:var(--theme-foreground-muted)";
+  kpiDiv.innerHTML = pctPonderadoMapa != null
+    ? `<strong style="color:var(--theme-foreground)">% victimización ponderado por población (${yearMapa}):</strong> ${pctPonderadoMapa.toFixed(1)}% <span style="font-size:11px">(ajustado por peso regional DANE 2025)</span>`
+    : "Sin datos para el año seleccionado";
+
+  const wrapper = document.createElement("div");
+  wrapper.appendChild(kpiDiv);
+
+  const mapContainer = document.createElement("div");
+  mapContainer.style.cssText = "max-width:520px; margin:0 auto;";
+
+  // Función resize
+  const ro = new ResizeObserver(([entry]) => {
+    mapContainer.innerHTML = "";
+    mapContainer.appendChild(mapaVictimizacion({ width: Math.min(entry.contentRect.width, 520) }));
+  });
+  ro.observe(wrapper);
+  mapContainer.appendChild(mapaVictimizacion({ width: 480 }));
+  wrapper.appendChild(mapContainer);
+  display(wrapper);
+}
+```
 
 ---
 
@@ -419,18 +626,20 @@ Inputs.table(tablaRegion, {
 
 En general, existe alta variabilidad interanual, lo que indica sensibilidad a contextos locales, No hay una convergencia clara entre regiones, lo que sugiere desigualdad territorial persistente en materia de seguridad y hacia los años finales, varias regiones tienden a niveles más cercanos entre sí, aunque sin eliminar completamente las brechas.
 </p>
+
 ---
 
 ```js
-// Selector de región para la gráfica de regiones
-const selRegionChart = Inputs.select(
-  ["Todas", ...([...new Set(dataCore.map(d => d.estratopri).filter(v => v != null && v !== ""))].sort())],
-  { label: "Filtrar región", value: "Todas" }
-);
+// Checkbox multi-selección de región
+const regionesDisponibles = [...new Set(dataCore.map(d => d.estratopri).filter(v => v != null && v !== ""))].sort();
+const selRegionChart = Inputs.checkbox(regionesDisponibles, {
+  label: "Filtrar región",
+  value: regionesDisponibles  // todas seleccionadas por defecto
+});
 ```
 
 ```js
-const regionChart = Generators.input(selRegionChart);
+const regionesSeleccionadas = Generators.input(selRegionChart);
 ```
 
 ```js
@@ -451,9 +660,10 @@ const serieZona = YEARS_VICTIMA.flatMap(year => {
     .map(([zona, pct]) => ({ year, category: zona, pct }));
 });
 
-const serieRegionFiltrada = regionChart === "Todas"
+// Filtrar por regiones seleccionadas con checkbox
+const serieRegionFiltrada = regionesSeleccionadas.length === 0
   ? serieRegion
-  : serieRegion.filter(d => d.category === regionChart);
+  : serieRegion.filter(d => regionesSeleccionadas.includes(d.category));
 ```
 
   ${selRegionChart}
@@ -483,19 +693,17 @@ const serieRegionFiltrada = regionChart === "Todas"
       Plot.dotY(serieRegionFiltrada, {
         x: "year", y: "pct", fill: "category", r: 4
       }),
-      Plot.text(
-        serieRegionFiltrada.filter(d => d.year === ultimoAnoRegion),
-        {
-          x: "year",
-          y: "pct",
-          text: d => `${d.category} ${d.pct.toFixed(1)}%`,
-          dx: 8,
-          textAnchor: "start",
-          fontSize: 11,
-          fill: "white"
-        }
-      )
-    ]
+      Plot.text(serieRegionFiltrada, {
+        x: "year",
+        y: "pct",
+        z: "category",
+        text: d => d.pct.toFixed(1) + "%",
+        dy: -10,
+        fontSize: 10,
+        fill: "white"
+      }
+    )
+  ]
   });
 
   const chartZona = Plot.plot({
@@ -575,13 +783,10 @@ const YEARS_POR_VAR = {
   exc20: [2012,2013,2014,2016]
 };
 
-// FIX: categorías tomadas directamente del CSV, preservando el texto original
+// Categorías unificadas: Ninguno=Nada generalizada, Menos de la mitad=Poco generalizada,
+// La mitad de los políticos=Algo generalizada, Más de la mitad=Muy generalizada
 const EXC07_CATS = [
-  "Ninguno",
   "Nada generalizada",
-  "Menos de la mitad",
-  "La mitad de los políticos",
-  "Más de la mitad",
   "Poco generalizada",
   "Algo generalizada",
   "Muy generalizada"
@@ -589,21 +794,22 @@ const EXC07_CATS = [
 ```
 
 ```js
-// Selectores Sección 2
-const selDelitoLinea = Inputs.select(
-  ["Todas", ...DELITOS_DEF.map(d => d.label)],
-  { label: "Filtrar delito", value: "Todas" }
+// Checkbox multi-selección de delitos
+const selDelitoLinea = Inputs.checkbox(
+  DELITOS_DEF.map(d => d.label),
+  { label: "Filtrar delito", value: DELITOS_DEF.map(d => d.label) }
 );
 
-const selExc07Linea = Inputs.select(
-  ["Todas", ...EXC07_CATS],
-  { label: "Filtrar categoría corrupción", value: "Todas" }
+// Checkbox multi-selección de categorías exc07
+const selExc07Linea = Inputs.checkbox(
+  EXC07_CATS,
+  { label: "Filtrar categoría corrupción", value: EXC07_CATS }
 );
 ```
 
 ```js
-const delitoLinea = Generators.input(selDelitoLinea);
-const exc07Linea  = Generators.input(selExc07Linea);
+const delitosSeleccionados = Generators.input(selDelitoLinea);
+const exc07Seleccionadas   = Generators.input(selExc07Linea);
 ```
 
 ```js
@@ -617,13 +823,13 @@ const serieDelitos = DELITOS_DEF.flatMap(def => {
   }).filter(Boolean);
 });
 
-const serieDelitosFiltrada = delitoLinea === "Todas"
+const serieDelitosFiltrada = delitosSeleccionados.length === 0
   ? serieDelitos
-  : serieDelitos.filter(d => d.categoria === delitoLinea);
+  : serieDelitos.filter(d => delitosSeleccionados.includes(d.categoria));
 ```
 
 ```js
-// FIX CLAVE: exc07 ahora está guardado como string en data, así que este filtro funciona
+// exc07 normalizado en data, categorías unificadas
 const serieExc07 = YEARS_EXC07.flatMap(year => {
   const sub = data.filter(d =>
     d.year === year &&
@@ -641,9 +847,9 @@ const serieExc07 = YEARS_EXC07.flatMap(year => {
   }));
 });
 
-const serieExc07Filtrada = exc07Linea === "Todas"
+const serieExc07Filtrada = exc07Seleccionadas.length === 0
   ? serieExc07
-  : serieExc07.filter(d => d.categoria === exc07Linea);
+  : serieExc07.filter(d => exc07Seleccionadas.includes(d.categoria));
 ```
   ${selDelitoLinea}
 
@@ -946,328 +1152,211 @@ Analiza la satisfacción con la democracia (<strong>pn4</strong>) y la eficacia 
 ]
   })
 ```
-<p>En el caso de la satisfacción con la democracia, los resultados muestran un deterioro progresivo a lo largo del tiempo. Durante los primeros años analizados (2004–2012), predominan las categorías de satisfacción, con más del 50% de los encuestados ubicándose como “satisfechos” y una proporción relativamente baja de insatisfacción extrema. Sin embargo, a partir de 2013 se observa un punto de quiebre, donde aumentan de manera significativa las categorías de insatisfacción. Este cambio se consolida en años posteriores, particularmente en 2020, donde la proporción de personas “muy insatisfechas” alcanza su nivel más alto, y las categorías negativas superan ampliamente a las positivas. Aunque en los años más recientes se evidencia una leve recuperación, la insatisfacción continúa siendo predominante, lo que refleja un debilitamiento sostenido en la percepción del funcionamiento democrático.</p>
 
-<div class="aviso-nd">
-  eff1 y eff2 no disponibles en 2004–2008 ni en 2021. La línea punteada marca el punto medio de la escala (4).
-</div>
+<p>En el caso de la satisfacción con la democracia, los resultados muestran un deterioro progresivo a lo largo del tiempo. Durante los primeros años predominan las categorías de satisfacción, pero a partir de 2013 aumenta significativamente la insatisfacción, con un pico en 2020. Las siguientes visualizaciones exploran cómo esta satisfacción democrática se relaciona con la percepción de eficacia política (eff1, eff2) y con los niveles de participación ciudadana en distintos espacios.</p>
+
+---
 
 ```js
-  {
-  const chartEff1 = Plot.plot({
-    title: "Los gobernantes se interesan por la gente (eff1) — media escala 1–7",
-    width: 500,
-    height: 340,
-    x: {
-      label: "Año",
-      tickFormat: d => String(d),
-      tickValues: YEARS_EFF,
-      grid: true
-    },
-    y: {
-      label: "Media",
-      domain: [1, 7],
-      grid: true
-    },
-    marks: [
-      Plot.ruleY([4], { strokeDasharray: "4,3" }),
-      Plot.lineY(serieEff1, { x: "year", y: "media", stroke: "#8b5cf6", strokeWidth: 2.5 }),
-      Plot.dotY(serieEff1, { x: "year", y: "media", r: 5 }),
-      Plot.text(serieEff1, {
-        x: "year",
-        y: "media",
-        text: d => d.media.toFixed(2),
-        dy: -12,
-        fill: "white",
-        fontSize: 10
-      })
-    ]
-  });
+// ── Sección 4: variables relacionadas con pn4 ─────────────────────────────
 
-  const chartEff2 = Plot.plot({
-    title: "Comprensión de asuntos políticos (eff2) — media escala 1–7",
-    width: 500,
-    height: 340,
-    x: {
-      label: "Año",
-      tickFormat: d => String(d),
-      tickValues: YEARS_EFF,
-      grid: true
-    },
-    y: {
-      label: "Media",
-      domain: [1, 7],
-      grid: true
-    },
-    marks: [
-      Plot.ruleY([4], { strokeDasharray: "4,3" }),
-      Plot.lineY(serieEff2, { x: "year", y: "media", stroke: "#06b6d4", strokeWidth: 2.5 }),
-      Plot.dotY(serieEff2, { x: "year", y: "media", r: 5 }),
-      Plot.text(serieEff2, {
-        x: "year",
-        y: "media",
-        text: d => d.media.toFixed(2),
-        dy: -12,
-        fill: "white",
-        fontSize: 10
-      })
-    ]
-  });
-  chartEff1.style.width = "48%";
-  chartEff2.style.width = "48%";
-  const container = document.createElement("div");
-  container.style.display = "flex";
-  container.style.gap = "24px";
-  container.style.flexWrap = "wrap"; // importante para responsive
+// Años donde coinciden pn4 + eff1 + eff2
+const YEARS_PN4_EFF = [2008,2009,2010,2011,2012,2013,2014,2016,2018,2020,2023,2025];
 
-  container.appendChild(chartEff1);
-  container.appendChild(chartEff2);
+// Años donde coinciden pn4 + cp6 + cp13 + colcp8a + prot3
+const YEARS_PN4_PART = [2016,2018,2020,2025];
 
-  display(container);
-}
+// Orden canónico de pn4 (de más a menos satisfecho)
+const PN4_ORDER = ["Muy satisfecho(a)", "Satisfecho(a)", "Insatisfecho(a)", "Muy insatisfecho(a)"];
+
+// cp6 / cp13 / colcp8a: participación activa = cualquier respuesta distinta a "Nunca"
+const esParticipante = v => v != null && v !== "Nunca";
 ```
-<p>Por otro lado, la percepción sobre el interés de los gobernantes por la ciudadanía (eff1) se mantiene consistentemente por debajo del punto medio de la escala (4), lo que indica una percepción generalizada de desconexión entre el Estado y la población. A lo largo del periodo analizado, este indicador presenta una caída inicial hasta 2014, seguida de una recuperación parcial en 2018, pero sin alcanzar niveles que sugieran una valoración positiva. En los años más recientes, la tendencia vuelve a estabilizarse en niveles bajos, reforzando la idea de una confianza limitada en la capacidad de los gobernantes para representar los intereses ciudadanos.
-
-En contraste, la autopercepción de comprensión de los asuntos políticos (eff2) se mantiene relativamente estable y cercana al punto medio de la escala, con valores ligeramente superiores a los observados en eff1. Esto sugiere que, aunque los ciudadanos no perciben a los gobernantes como cercanos o receptivos, sí consideran tener cierto nivel de entendimiento sobre la política. No obstante, esta comprensión no se traduce necesariamente en mayor confianza institucional, lo que evidencia una brecha entre conocimiento político y legitimidad del sistema.
-
-En conjunto, los resultados de esta sección reflejan un escenario de debilitamiento en la confianza institucional, caracterizado por una creciente insatisfacción con la democracia y una percepción persistente de desconexión entre gobernantes y ciudadanía. Aunque los niveles de comprensión política se mantienen relativamente estables, estos no parecen ser suficientes para contrarrestar la percepción negativa del funcionamiento institucional, lo que puede tener implicaciones importantes en términos de participación, legitimidad y gobernabilidad.</p>
-
----
-## Sección 5: Participación Social
----
-<p>
-Mide la frecuencia de participación en espacios comunitarios y cívicos: organizaciones religiosas (cp6), partidos políticos (cp13), Juntas de Acción Comunal (colcp8a) y manifestaciones públicas (prot3). Las preguntas de frecuencia usan la escala: Nunca / Una o dos veces al año / Una o dos veces al mes / Una vez a la semana.
-</p>
 
 ```js
-  const YEARS_CP6_CP13 = [2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2016,2018,2020,2023,2025];
-  const YEARS_COLCP8A  = [2004,2005,2006,2007,2008,2014,2016,2018,2020,2025];
-  const YEARS_PROT3    = [2010,2011,2012,2013,2014,2016,2018,2020,2021,2025];
+// Selector de año compartido para gráficas eff1/eff2 vs pn4
+const selYearEff = Inputs.select(YEARS_PN4_EFF, {
+  label: "Año (eficacia política)",
+  value: 2018
+});
 
-  const FREQ_CATS = [
-    "Nunca",
-    "Una o dos veces al año",
-    "Una o dos veces al mes",
-    "Una vez a la semana"
+// Selector de año para participación vs pn4
+const selYearPart4 = Inputs.select(YEARS_PN4_PART, {
+  label: "Año (participación)",
+  value: 2018
+});
+```
+
+```js
+const yearEff   = Generators.input(selYearEff);
+const yearPart4 = Generators.input(selYearPart4);
+```
+
+```js
+// ── Gráfica 1: eff1 y eff2 por categoría pn4 ──────────────────────────────
+// Para cada grupo pn4, media de eff1 y media de eff2
+const dataEff4 = PN4_ORDER.flatMap(cat => {
+  const sub = data.filter(d =>
+    d.year === yearEff &&
+    filtroGlobal(d) &&
+    d.pn4 === cat
+  );
+  const mediaEff1 = sub.filter(d => d.eff1 != null).length > 0
+    ? d3.mean(sub.filter(d => d.eff1 != null), d => d.eff1)
+    : null;
+  const mediaEff2 = sub.filter(d => d.eff2 != null).length > 0
+    ? d3.mean(sub.filter(d => d.eff2 != null), d => d.eff2)
+    : null;
+  return [
+    mediaEff1 != null ? { grupo: cat, variable: "eff1 — Gobernantes se interesan por la gente", media: mediaEff1 } : null,
+    mediaEff2 != null ? { grupo: cat, variable: "eff2 — Comprendo los asuntos políticos",       media: mediaEff2 } : null
+  ].filter(Boolean);
+});
+```
+
+```js
+// ── Gráfica 2: participación por categoría pn4 ────────────────────────────
+// Para cada grupo pn4, % que participó en cp6, cp13, colcp8a, prot3
+const dataPart4 = PN4_ORDER.flatMap(cat => {
+  const sub = data.filter(d =>
+    d.year === yearPart4 &&
+    filtroGlobal(d) &&
+    d.pn4 === cat
+  );
+  if (!sub.length) return [];
+
+  const vars = [
+    { key: "cp6",    label: "Org. religiosa (cp6)" },
+    { key: "cp13",   label: "Partido político (cp13)" },
+    { key: "colcp8a",label: "JAC (colcp8a)" },
+    { key: "prot3",  label: "Manifestación (prot3)" }
   ];
 
-  // FIX: usar array de números directamente, NO .map(String)
-  const YEARS_PART = [...new Set([
-    ...YEARS_CP6_CP13,
-    ...YEARS_COLCP8A
-  ])].sort((a, b) => a - b);
-
-  // FIX: selector con números, no strings
-  const selYearPart = Inputs.select(YEARS_PART, {
-    label: "Año",
-    value: 2018
-  });
-```
-
-```js
-  // FIX: celda reactiva separada — ya devuelve número porque el selector usa números
-  const yearPart = Generators.input(selYearPart);
-```
-
-```js
-  function distribucionFrecuencia(variable, year, yearsValidos) {
-    if (!yearsValidos.includes(year)) return [];
-
-    const sub = data.filter(d =>
-      d.year === year &&
-      filtroGlobal(d) &&
-      d[variable] !== null &&
-      FREQ_CATS.includes(d[variable])
-    );
-
-    if (!sub.length) return [];
-
-    const total = sub.length;
-
-    return FREQ_CATS.map(cat => {
-      const count = sub.filter(d => d[variable] === cat).length;
-      return {
-        categoria: cat,
-        pct: (count / total) * 100
-      };
-    });
-  }
-
-  const distCp6    = distribucionFrecuencia("cp6", yearPart, YEARS_CP6_CP13);
-  const distCp13   = distribucionFrecuencia("cp13", yearPart, YEARS_CP6_CP13);
-  const distColcp8 = distribucionFrecuencia("colcp8a", yearPart, YEARS_COLCP8A);
-
-  const serieProt3 = YEARS_PROT3.map(year => {
-  const sub = data.filter(d => d.year === year && filtroGlobal(d));
-  const pct = pctSi(sub, "prot3");
-  return pct !== null ? { year, pct } : null;
+  return vars.map(({ key, label }) => {
+    const validos = sub.filter(d => d[key] != null);
+    if (!validos.length) return null;
+    // prot3 es siNoPartic (1/0), cp variables son texto frecuencia
+    const participa = key === "prot3"
+      ? validos.filter(d => d[key] === 1).length
+      : validos.filter(d => esParticipante(d[key])).length;
+    return {
+      grupo: cat,
+      variable: label,
+      pct: (participa / validos.length) * 100
+    };
   }).filter(Boolean);
+});
 ```
-<div class="aviso-nd">
-  cp6 y cp13: disponibles en 2004–2014, 2016, 2018, 2020, 2023 y 2025. colcp8a: disponible en 2004–2008, 2014, 2016, 2018, 2020 y 2025. prot3: disponible en 2010–2014, 2016, 2018, 2020, 2021 y 2025.
-</div>
 
-<div style="margin: 16px 0 8px 0;">
-  ${selYearPart}
-</div>
+<div style="margin-bottom:10px">${selYearEff}</div>
 
 ```js
-  {
-    const chartCp6 = distCp6.length
-      ? Plot.plot({
-          title: `Participación en organizaciones religiosas (cp6) — ${yearPart}`,
-          width: Math.floor(width / 2) - 12,
-          height: 300,
-          marginLeft: 170,
-          x: { label: "%", domain: [0, 100], grid: true },
-          y: { label: null },
-          color: {
-            domain: FREQ_CATS,
-            range: ["#dc2626", "#f59e0b", "#60a5fa", "#16a34a"],
-            legend: false
-          },
-          marks: [
-            Plot.barX(distCp6, {
-              x: "pct",
-              y: "categoria",
-              fill: "categoria",
-              tip: true
-            }),
-            Plot.text(distCp6, {
-              x: "pct",
-              y: "categoria",
-              text: d => d.pct.toFixed(1) + "%",
-              dx: 6,
-              textAnchor: "start",
-              fontSize: 11,
-              fill: "white"
-            })
-          ]
-        })
-      : html`<div class="aviso-nd">cp6 no disponible en ${yearPart}</div>`;
-
-    const chartCp13 = distCp13.length
-      ? Plot.plot({
-          title: `Participación en partidos políticos (cp13) — ${yearPart}`,
-          width: Math.floor(width / 2) - 12,
-          height: 300,
-          marginLeft: 170,
-          x: { label: "%", domain: [0, 100], grid: true },
-          y: { label: null },
-          color: {
-            domain: FREQ_CATS,
-            range: ["#dc2626", "#f59e0b", "#60a5fa", "#16a34a"],
-            legend: false
-          },
-          marks: [
-            Plot.barX(distCp13, {
-              x: "pct",
-              y: "categoria",
-              fill: "categoria",
-              tip: true
-            }),
-            Plot.text(distCp13, {
-              x: "pct",
-              y: "categoria",
-              text: d => d.pct.toFixed(1) + "%",
-              dx: 6,
-              textAnchor: "start",
-              fontSize: 11,
-              fill: "white"
-            })
-          ]
-        })
-      : html`<div class="aviso-nd">cp13 no disponible en ${yearPart}</div>`;
-
-    const div = document.createElement("div");
-    div.style.cssText = "display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;";
-    div.appendChild(chartCp6);
-    div.appendChild(chartCp13);
-    display(div);
-  }
-```
-```js
-  distColcp8.length
-    ? Plot.plot({
-        title: `Participación en Juntas de Acción Comunal (colcp8a) — ${yearPart}`,
-        width,
-        height: 300,
-        marginLeft: 170,
-        x: { label: "%", domain: [0, 100], grid: true },
-        y: { label: null },
-        color: {
-          domain: FREQ_CATS,
-          range: ["#dc2626", "#f59e0b", "#60a5fa", "#16a34a"],
-          legend: false
-        },
-        marks: [
-          Plot.barX(distColcp8, {
-            x: "pct",
-            y: "categoria",
-            fill: "categoria",
-            tip: true
-          }),
-          Plot.text(distColcp8, {
-            x: "pct",
-            y: "categoria",
-            text: d => d.pct.toFixed(1) + "%",
-            dx: 6,
-            textAnchor: "start",
-            fontSize: 11,
-            fill: "white"
-          })
-        ]
-      })
-    : html`<div class="aviso-nd">colcp8a no disponible en ${yearPart}</div>`
-```
-```js
-  Plot.plot({
-    title: "Participación en manifestaciones o protestas públicas — % (prot3)",
-    width,
-    height: 320,
-    x: {
-      label: "Año",
-      tickFormat: d => String(d),
-      tickValues: YEARS_PROT3,
-      grid: true
-    },
-    y: {
-      label: "% participó",
-      domain: [0, 20],
-      grid: true
-    },
-    marks: [
-      Plot.ruleY([0]),
-      Plot.areaY(serieProt3, {
-        x: "year",
-        y: "pct",
-        fill: "#9d174d",
-        fillOpacity: 0.10
-      }),
-      Plot.lineY(serieProt3, {
-        x: "year",
-        y: "pct",
-        stroke: "#9d174d",
-        strokeWidth: 2.5,
+Plot.plot({
+  title: `Eficacia política según satisfacción democrática — ${yearEff}`,
+  subtitle: "Media en escala 1–7 por categoría de pn4 (1 = muy en desacuerdo, 7 = muy de acuerdo)",
+  width,
+  height: 360,
+  marginLeft: 60,
+  x: {
+    domain: PN4_ORDER,
+    label: "Satisfacción con la democracia (pn4)"
+  },
+  y: {
+    label: "Media escala 1–7",
+    domain: [1, 7],
+    grid: true
+  },
+  color: {
+    domain: ["eff1 — Gobernantes se interesan por la gente", "eff2 — Comprendo los asuntos políticos"],
+    range: ["#8b5cf6", "#06b6d4"],
+    legend: true
+  },
+  marks: [
+    Plot.ruleY([4], { stroke: "gray", strokeDasharray: "4,3", strokeOpacity: 0.6 }),
+    Plot.barY(dataEff4, Plot.groupX(
+      { y: "mean" },
+      {
+        x: "grupo",
+        y: "media",
+        fill: "variable",
+        fx: "variable",
         tip: true
-      }),
-      Plot.dotY(serieProt3, {
-        x: "year",
-        y: "pct",
-        fill: "white",
-        stroke: "#9d174d",
-        strokeWidth: 2,
-        r: 5
-      }),
-      Plot.text(serieProt3, {
-        x: "year",
-        y: "pct",
-        text: d => d.pct.toFixed(2) + "%",
-        dy: -12,
-        fontSize: 10,
-        fill: "white"
-      })
-    ]
-  })
+      }
+    )),
+    Plot.text(dataEff4, {
+      x: "grupo",
+      y: "media",
+      fx: "variable",
+      text: d => d.media.toFixed(2),
+      dy: -8,
+      fontSize: 10,
+      fill: "currentColor",
+      textAnchor: "middle"
+    }),
+    Plot.ruleY([0])
+  ]
+})
 ```
+
+<p>Esta gráfica muestra cómo varían la percepción de eficacia política interna (eff1: los gobernantes se interesan por la gente; eff2: comprensión de asuntos políticos) según el nivel de satisfacción con la democracia. Se esperaría una relación positiva: quienes están más satisfechos con la democracia también percibirían que los gobernantes se interesan más por la ciudadanía. Una brecha entre eff1 y eff2 dentro del mismo grupo indicaría que las personas pueden entender la política sin necesariamente confiar en que el sistema responde a sus intereses.</p>
+
+---
+
+<div style="margin-bottom:10px">${selYearPart4}</div>
+
+```js
+Plot.plot({
+  title: `Participación ciudadana según satisfacción democrática — ${yearPart4}`,
+  subtitle: "% que participó en cada espacio, por categoría de pn4",
+  width,
+  height: 380,
+  marginLeft: 60,
+  x: {
+    domain: PN4_ORDER,
+    label: "Satisfacción con la democracia (pn4)"
+  },
+  y: {
+    label: "% participó",
+    domain: [0, 100],
+    grid: true
+  },
+  color: {
+    domain: [
+      "Org. religiosa (cp6)",
+      "Partido político (cp13)",
+      "JAC (colcp8a)",
+      "Manifestación (prot3)"
+    ],
+    range: ["#f59e0b", "#3b82f6", "#10b981", "#ef4444"],
+    legend: true
+  },
+  marks: [
+    Plot.ruleY([0]),
+    Plot.barY(dataPart4, Plot.groupX(
+      { y: "mean" },
+      {
+        x: "grupo",
+        y: "pct",
+        fill: "variable",
+        fx: "variable",
+        tip: true
+      }
+    )),
+    Plot.text(dataPart4, {
+      x: "grupo",
+      y: "pct",
+      fx: "variable",
+      text: d => d.pct.toFixed(1) + "%",
+      dy: -8,
+      fontSize: 9,
+      fill: "currentColor",
+      textAnchor: "middle"
+    }),
+    Plot.ruleY([0])
+  ]
+})
+```
+
+<p>Esta visualización permite identificar si existe una relación entre la satisfacción con la democracia y la participación en distintos espacios cívicos. La hipótesis clásica de la teoría democrática sugiere que una mayor satisfacción se asocia con mayor participación institucional (partidos, JAC), mientras que la insatisfacción podría canalizarse hacia formas de participación de protesta (manifestaciones). El selector de año permite observar si estos patrones se mantienen o cambian a lo largo del tiempo.</p>
+
 </div>
