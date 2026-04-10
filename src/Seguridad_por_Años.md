@@ -585,47 +585,8 @@ const geoVictima = {
 
 ---
 
-```js
-// Tabla: encuestados y víctimas por región y año
-const tablaRegion = YEARS_VICTIMA.flatMap(year => {
-  const sub = dataCore.filter(d => d.year === year && filtroGlobal(d) && d.estratopri != null);
-  const byRegion = d3.rollups(
-    sub,
-    v => {
-      const total    = v.length;
-      const victimas = v.filter(d => d.victima_total === 1).length;
-      return { total, victimas };
-    },
-    d => d.estratopri
-  );
-  return byRegion.map(([reg, { total, victimas }]) => ({
-    Año: year,
-    Región: reg,
-    Encuestados: total,
-    Víctimas: victimas,
-    "% víctimas": total > 0 ? ((victimas / total) * 100).toFixed(1) + "%" : "N/D"
-  }));
-}).sort((a, b) => a.Año - b.Año || a.Región.localeCompare(b.Región));
-```
-
-```js
-Inputs.table(tablaRegion, {
-  columns: ["Año", "Región", "Encuestados", "Víctimas", "% víctimas"],
-  sort: "Año",
-  reverse: false,
-  width: {
-    Año: 80,
-    Región: 180,
-    Encuestados: 120,
-    Víctimas: 100,
-    "% víctimas": 110
-  }
-})
-```
-<p>El análisis territorial permite identificar heterogeneidad en la victimización, tanto por región geográfica como por tipo de zona (urbana vs. rural). Esto es clave para entender que la seguridad no evoluciona de manera uniforme en el país. Las regiones presentan trayectorias diferenciadas y volátiles. Algunas, como Pacífica y Bogotá D.C., muestran picos pronunciados en ciertos años, mientras que otras como Andina evidencian una tendencia más estable o decreciente.
-
-En general, existe alta variabilidad interanual, lo que indica sensibilidad a contextos locales, No hay una convergencia clara entre regiones, lo que sugiere desigualdad territorial persistente en materia de seguridad y hacia los años finales, varias regiones tienden a niveles más cercanos entre sí, aunque sin eliminar completamente las brechas.
-</p>
+  <p>El análisis territorial de la victimización entre 2004 y 2018 revela una reducción sostenida en todas las regiones del país, aunque con trayectorias y velocidades diferenciadas. En 2004, los niveles eran generalizadamente altos: Bogotá D.C. registraba el 10.4%, el Caribe el 10.3%, la Pacífica el 8.8% y la Andina el 7.3%, mientras que la Orinoquía-Amazonía presentaba el valor más bajo con 6.4%. Para 2018, todos los territorios habían reducido sustancialmente sus cifras, con la Andina descendiendo al 2.1% y la Orinoquía-Amazonía al 2.8%, consolidándose como las regiones con menor victimización al final del período. Sin embargo, la Pacífica y el Caribe mantuvieron los índices más elevados en 2018, con 5.6% y 4.3% respectivamente, lo que sugiere que la mejora agregada no ha sido homogénea y que persisten brechas territoriales estructurales. Un patrón notable es la alta volatilidad interanual en varias regiones: la Pacífica, por ejemplo, oscila entre 1.1% en 2010 y 11.0% en 2005, y Bogotá D.C. entre 2.2% en 2006 y 10.4% en 2004, lo cual indica que los factores que determinan la victimización en estos territorios son sensibles a dinámicas locales y no responden de manera lineal a tendencias nacionales. En términos de tamaño muestral, las regiones Andina y Orinoquía-Amazonía concentran consistentemente el mayor número de encuestados, lo que otorga mayor estabilidad estadística a sus estimaciones, mientras que Pacífica y Bogotá D.C. presentan muestras más reducidas, lo que podría amplificar la varianza en sus porcentajes. En conjunto, los datos evidencian que Colombia experimentó una mejora real y sostenida en materia de seguridad ciudadana durante el período analizado, pero que esta mejora ha sido geográficamente desigual, con la región Pacífica y el Caribe como territorios que requieren atención prioritaria desde una perspectiva de política pública territorial.
+  </p>
 
 ---
 
@@ -1152,10 +1113,8 @@ Analiza la satisfacción con la democracia (<strong>pn4</strong>) y la eficacia 
 ]
   })
 ```
-
-<p>En el caso de la satisfacción con la democracia, los resultados muestran un deterioro progresivo a lo largo del tiempo. Durante los primeros años predominan las categorías de satisfacción, pero a partir de 2013 aumenta significativamente la insatisfacción, con un pico en 2020. Las siguientes visualizaciones exploran cómo esta satisfacción democrática se relaciona con la percepción de eficacia política (eff1, eff2) y con los niveles de participación ciudadana en distintos espacios.</p>
-
 ---
+<p>La satisfacción con el funcionamiento de la democracia en Colombia muestra una transformación radical entre 2004 y 2025. Durante el período 2004–2012, el sistema político gozaba de una legitimidad relativamente alta: las categorías de satisfacción ("Muy satisfecho" + "Satisfecho") sumaban consistentemente entre el 55% y el 62% de los encuestados, con niveles de insatisfacción extrema ("Muy insatisfecho") que no superaban el 7.5%. Este escenario cambia de forma abrupta a partir de 2013, cuando la insatisfacción comienza a dominar la distribución. En 2013, los insatisfechos ya representan el 55.5% y los muy insatisfechos el 12.7%, una ruptura que se consolida en los años posteriores. El punto más crítico se registra en 2020, donde la insatisfacción acumulada supera el 80% de los encuestados, con un 27.9% en la categoría de muy insatisfecho, posiblemente asociado al impacto de la pandemia, las protestas sociales y el deterioro de la percepción institucional. En los años más recientes (2021–2025) se observa una leve recuperación de las categorías de satisfacción, que vuelven a rondar el 25%–28%, aunque la insatisfacción sigue siendo mayoritaria, lo que indica que el sistema político colombiano enfrenta un déficit de legitimidad estructural que no ha logrado revertirse completamente.</p>
 
 ```js
 // ── Sección 4: variables relacionadas con pn4 ─────────────────────────────
@@ -1177,13 +1136,13 @@ const esParticipante = v => v != null && v !== "Nunca";
 // Selector de año compartido para gráficas eff1/eff2 vs pn4
 const selYearEff = Inputs.select(YEARS_PN4_EFF, {
   label: "Año (eficacia política)",
-  value: 2018
+  value: 2025
 });
 
 // Selector de año para participación vs pn4
 const selYearPart4 = Inputs.select(YEARS_PN4_PART, {
   label: "Año (participación)",
-  value: 2018
+  value: 2025
 });
 ```
 
@@ -1251,112 +1210,152 @@ const dataPart4 = PN4_ORDER.flatMap(cat => {
 <div style="margin-bottom:10px">${selYearEff}</div>
 
 ```js
-Plot.plot({
-  title: `Eficacia política según satisfacción democrática — ${yearEff}`,
-  subtitle: "Media en escala 1–7 por categoría de pn4 (1 = muy en desacuerdo, 7 = muy de acuerdo)",
-  width,
-  height: 360,
-  marginLeft: 60,
-  x: {
+{
+  // Separar datos por variable para dos gráficas independientes
+  const dataEff1 = dataEff4.filter(d => d.variable === "eff1 — Gobernantes se interesan por la gente");
+  const dataEff2 = dataEff4.filter(d => d.variable === "eff2 — Comprendo los asuntos políticos");
+
+  const W = Math.floor(width / 2) - 20;
+
+  // Opciones comunes de eje X — sin rotación, con más margen abajo
+  const xOpts = {
     domain: PN4_ORDER,
-    label: "Satisfacción con la democracia (pn4)"
-  },
-  y: {
-    label: "Media escala 1–7",
-    domain: [1, 7],
-    grid: true
-  },
-  color: {
-    domain: ["eff1 — Gobernantes se interesan por la gente", "eff2 — Comprendo los asuntos políticos"],
-    range: ["#8b5cf6", "#06b6d4"],
-    legend: true
-  },
-  marks: [
-    Plot.ruleY([4], { stroke: "gray", strokeDasharray: "4,3", strokeOpacity: 0.6 }),
-    Plot.barY(dataEff4, Plot.groupX(
-      { y: "mean" },
-      {
-        x: "grupo",
-        y: "media",
-        fill: "variable",
-        fx: "variable",
-        tip: true
-      }
-    )),
-    Plot.text(dataEff4, {
-      x: "grupo",
-      y: "media",
-      fx: "variable",
-      text: d => d.media.toFixed(2),
-      dy: -8,
-      fontSize: 10,
-      fill: "currentColor",
-      textAnchor: "middle"
-    }),
-    Plot.ruleY([0])
-  ]
-})
+    label: null,           // label abajo lo ponemos con marginBottom
+    tickSize: 6,
+    tickPadding: 8,
+    tickFormat: d => {
+      // Abreviar para que quepan sin solapar
+      const MAP = {
+        "Muy satisfecho(a)":    "Muy satisfecho",
+        "Satisfecho(a)":        "Satisfecho",
+        "Insatisfecho(a)":      "Insatisfecho",
+        "Muy insatisfecho(a)":  "Muy insatisfecho"
+      };
+      return MAP[d] ?? d;
+    }
+  };
+
+  const mkEff = (titulo, datos, color) => Plot.plot({
+    title: titulo,
+    subtitle: `${yearEff} — escala 1 (desacuerdo) a 7 (acuerdo)`,
+    width: W,
+    height: 400,
+    marginBottom: 60,
+    marginLeft: 52,
+    x: xOpts,
+    y: { label: "Media 1–7", domain: [1, 7], grid: true },
+    marks: [
+      Plot.ruleY([4], { stroke: "#888", strokeDasharray: "4,3", strokeOpacity: 0.5 }),
+      Plot.ruleY([0]),
+      Plot.barY(datos, { x: "grupo", y: "media", fill: color, fillOpacity: 0.85, tip: true }),
+      Plot.text(datos, {
+        x: "grupo", y: "media",
+        text: d => d.media.toFixed(2),
+        dy: -10, fontSize: 11,
+        fill: "currentColor", textAnchor: "middle"
+      })
+    ]
+  });
+
+  const c1 = mkEff("eff1 — Gobernantes se interesan por la gente", dataEff1, "#8b5cf6");
+  const c2 = mkEff("eff2 — Comprendo los asuntos políticos",        dataEff2, "#06b6d4");
+
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex; gap:32px; align-items:flex-start;";
+  row.appendChild(c1);
+  row.appendChild(c2);
+  display(row);
+}
 ```
 
-<p>Esta gráfica muestra cómo varían la percepción de eficacia política interna (eff1: los gobernantes se interesan por la gente; eff2: comprensión de asuntos políticos) según el nivel de satisfacción con la democracia. Se esperaría una relación positiva: quienes están más satisfechos con la democracia también percibirían que los gobernantes se interesan más por la ciudadanía. Una brecha entre eff1 y eff2 dentro del mismo grupo indicaría que las personas pueden entender la política sin necesariamente confiar en que el sistema responde a sus intereses.</p>
+<p>Esta gráfica muestra cómo varían la percepción de eficacia política interna (eff1: los gobernantes se interesan por la gente; eff2: comprensión de asuntos políticos) según el nivel de satisfacción con la democracia. Se esperaría una relación positiva: quienes están más satisfechos con la democracia también percibirían que los gobernantes se interesan más por la ciudadanía. Una brecha entre eff1 y eff2 dentro del mismo grupo indicaría que las personas pueden entender la política sin necesariamente confiar en que el sistema responde a sus intereses.
+
+El análisis de la eficacia política interna según el nivel de satisfacción democrática revela patrones consistentes y teóricamente coherentes.Para el año 2025, el análisis de la eficacia política interna según el nivel de satisfacción democrática revela en el caso de eff1 (percepción de que los gobernantes se interesan por la gente), se observa una relación positiva clara con la satisfacción democrática: quienes se declaran "Muy satisfechos" asignan una media de 3.71, los "Satisfechos" de 3.84, mientras que los "Insatisfechos" caen a 3.05 y los "Muy insatisfechos" a 2.62, todos por debajo del punto medio de la escala (4). Esto indica que, independientemente del grupo, la ciudadanía percibe que los gobernantes no responden adecuadamente a sus intereses, siendo esta percepción significativamente más negativa entre quienes están insatisfechos con la democracia. En contraste, eff2 (comprensión de los asuntos políticos) muestra valores más homogéneos entre grupos: 3.95 para los muy satisfechos, 4.01 para los satisfechos, 3.66 para los insatisfechos y 3.80 para los muy insatisfechos, todos cercanos al punto medio de la escala. Esta menor variación sugiere que la comprensión subjetiva de la política no depende tanto de la satisfacción con el sistema democrático, sino que es una capacidad percibida de manera relativamente uniforme en la población. La brecha entre eff1 y eff2 dentro de cada grupo es especialmente reveladora: los ciudadanos sienten que entienden la política, pero no confían en que el sistema responda a sus necesidades, una combinación que puede alimentar tanto la frustración democrática como la movilización social.</p>
 
 ---
 
 <div style="margin-bottom:10px">${selYearPart4}</div>
 
 ```js
-Plot.plot({
-  title: `Participación ciudadana según satisfacción democrática — ${yearPart4}`,
-  subtitle: "% que participó en cada espacio, por categoría de pn4",
-  width,
-  height: 380,
-  marginLeft: 60,
-  x: {
+{
+  const dataCp6   = dataPart4.filter(d => d.variable === "Org. religiosa (cp6)");
+  const dataCp13  = dataPart4.filter(d => d.variable === "Partido político (cp13)");
+  const dataJac   = dataPart4.filter(d => d.variable === "JAC (colcp8a)");
+  const dataProt3 = dataPart4.filter(d => d.variable === "Manifestación (prot3)");
+
+  const W = Math.floor(width / 2) - 20;
+
+  const xOpts = {
     domain: PN4_ORDER,
-    label: "Satisfacción con la democracia (pn4)"
-  },
-  y: {
-    label: "% participó",
-    domain: [0, 100],
-    grid: true
-  },
-  color: {
-    domain: [
-      "Org. religiosa (cp6)",
-      "Partido político (cp13)",
-      "JAC (colcp8a)",
-      "Manifestación (prot3)"
-    ],
-    range: ["#f59e0b", "#3b82f6", "#10b981", "#ef4444"],
-    legend: true
-  },
-  marks: [
-    Plot.ruleY([0]),
-    Plot.barY(dataPart4, Plot.groupX(
-      { y: "mean" },
-      {
-        x: "grupo",
-        y: "pct",
-        fill: "variable",
-        fx: "variable",
-        tip: true
-      }
-    )),
-    Plot.text(dataPart4, {
-      x: "grupo",
-      y: "pct",
-      fx: "variable",
-      text: d => d.pct.toFixed(1) + "%",
-      dy: -8,
-      fontSize: 9,
-      fill: "currentColor",
-      textAnchor: "middle"
-    }),
-    Plot.ruleY([0])
-  ]
-})
+    label: null,
+    tickSize: 6,
+    tickPadding: 8,
+    tickFormat: d => {
+      const MAP = {
+        "Muy satisfecho(a)":   "Muy satisfecho",
+        "Satisfecho(a)":       "Satisfecho",
+        "Insatisfecho(a)":     "Insatisfecho",
+        "Muy insatisfecho(a)": "Muy insatisfecho"
+      };
+      return MAP[d] ?? d;
+    }
+  };
+
+  const mkPart = (titulo, datos, color) => Plot.plot({
+    title: titulo,
+    subtitle: String(yearPart4),
+    width: W,
+    height: 360,
+    marginBottom: 60,
+    marginLeft: 52,
+    x: xOpts,
+    y: { label: "% participó", domain: [0, 100], grid: true },
+    marks: [
+      Plot.ruleY([0]),
+      Plot.barY(datos, { x: "grupo", y: "pct", fill: color, fillOpacity: 0.85, tip: true }),
+      Plot.text(datos, {
+        x: "grupo", y: "pct",
+        text: d => d.pct.toFixed(1) + "%",
+        dy: -10, fontSize: 11,
+        fill: "currentColor", textAnchor: "middle"
+      })
+    ]
+  });
+
+  // Fila 1: cp6 y cp13
+  const row1 = document.createElement("div");
+  row1.style.cssText = "display:flex; gap:32px; align-items:flex-start; margin-bottom:28px;";
+  row1.appendChild(mkPart("Org. religiosa (cp6)",    dataCp6,   "#f59e0b"));
+  row1.appendChild(mkPart("Partido político (cp13)", dataCp13,  "#3b82f6"));
+
+  // Fila 2: JAC y manifestación
+  const row2 = document.createElement("div");
+  row2.style.cssText = "display:flex; gap:32px; align-items:flex-start;";
+  row2.appendChild(mkPart("JAC (colcp8a)",       dataJac,   "#10b981"));
+  row2.appendChild(mkPart("Manifestación (prot3)", dataProt3, "#ef4444"));
+
+  const wrapper = document.createElement("div");
+  wrapper.appendChild(row1);
+  wrapper.appendChild(row2);
+  display(wrapper);
+}
 ```
 
-<p>Esta visualización permite identificar si existe una relación entre la satisfacción con la democracia y la participación en distintos espacios cívicos. La hipótesis clásica de la teoría democrática sugiere que una mayor satisfacción se asocia con mayor participación institucional (partidos, JAC), mientras que la insatisfacción podría canalizarse hacia formas de participación de protesta (manifestaciones). El selector de año permite observar si estos patrones se mantienen o cambian a lo largo del tiempo.</p>
+<p>Esta visualización permite identificar si existe una relación entre la satisfacción con la democracia y la participación en distintos espacios cívicos. La hipótesis clásica de la teoría democrática sugiere que una mayor satisfacción se asocia con mayor participación institucional (partidos, JAC), mientras que la insatisfacción podría canalizarse hacia formas de participación de protesta (manifestaciones). El selector de año permite observar si estos patrones se mantienen o cambian a lo largo del tiempo.
 
+En 2025, el análisis de la participación ciudadana según el nivel de satisfacción democrática, en cuanto a la participación en organizaciones religiosas (cp6), los niveles son elevados y prácticamente uniformes en todos los grupos de satisfacción, oscilando entre 55.4% y 57.5%, lo que indica que este espacio de participación no está mediado por la valoración del sistema político sino por factores culturales o comunitarios independientes. La participación en partidos políticos (cp13) muestra una relación levemente positiva con la satisfacción: los más satisfechos participan en un 20.0% frente al 15.5% de los muy insatisfechos, lo que sugiere que la vinculación con los canales institucionales de representación sí guarda cierta coherencia con la valoración de la democracia. La participación en Juntas de Acción Comunal (colcp8a) es prácticamente idéntica entre grupos (entre 24.2% y 27.2%), lo que refleja que este espacio de participación comunitaria responde más a dinámicas territoriales que a posiciones político-ideológicas. El resultado más llamativo lo ofrece la participación en manifestaciones o protestas (prot3): quienes están "Muy satisfechos" participaron en un 12.5%, porcentaje que desciende progresivamente hasta 5.7% entre los "Muy insatisfechos". Este hallazgo, contraintuitivo frente a la hipótesis de la protesta como canal de la insatisfacción, podría explicarse porque quienes participan activamente en manifestaciones también son ciudadanos más comprometidos políticamente en general, o porque la protesta en Colombia no está necesariamente asociada a descontento sino a culturas de movilización más amplias. En conjunto, los datos sugieren que la participación ciudadana en Colombia es multidimensional y no se reduce a una lógica de satisfacción-desafección, sino que opera a través de diferentes canales con lógicas propias.</p>
+
+---
+
+### Conclusiones y Apreciaciones finales
+
+<p>Los hallazgos del Observatorio de Paz y Seguridad de Colombia configuran un retrato complejo y multidimensional de la seguridad ciudadana y la percepción institucional durante las dos últimas décadas. En conjunto, los datos permiten identificar una narrativa de mejora objetiva en materia de victimización que coexiste, de manera paradójica, con un deterioro sostenido en la percepción que los ciudadanos tienen del Estado y sus instituciones.
+
+En el plano de la seguridad directa, el período 2004–2018 muestra una reducción real y significativa de la victimización comparable, que descendió de niveles cercanos al 9% en 2004 a alrededor del 3.5% en 2018. Esta mejora, aunque generalizada, no fue territorialmente homogénea: mientras la región Andina y la Orinoquía-Amazonía convergieron hacia niveles bajos, el Caribe y la Pacífica mantuvieron índices sistemáticamente más altos, evidenciando que la seguridad sigue siendo un fenómeno profundamente desigual en el país. En cuanto a la tipología del delito, se observa un desplazamiento desde formas más visibles de violencia hacia modalidades más difusas como el fraude y la estafa, lo que sugiere una transformación en los patrones delictivos antes que una erradicación del problema.
+
+El contexto del conflicto armado añade una dimensión estructural de largo plazo que los indicadores de victimización cotidiana no capturan por sí solos. La proporción de hogares afectados por pérdidas de familiares, desplazamiento forzado o emigración por razones del conflicto se mantuvo persistentemente alta durante todo el período analizado, con niveles que superan el 20% en varias de estas dimensiones. Esto evidencia que las consecuencias del conflicto armado en Colombia trascienden los períodos de mayor intensidad bélica y se consolidan como una herida estructural en el tejido social, cuyo impacto acumulado sigue moldeando la experiencia cotidiana de seguridad de la población.
+
+En el plano institucional, los datos revelan la tensión más profunda del período analizado: a pesar de las mejoras en seguridad objetiva, la satisfacción con la democracia colapsó a partir de 2013 y alcanzó su punto crítico en 2020, cuando más del 80% de los encuestados se declaró insatisfecho con el sistema político. Este deterioro no es superficial, sino que se ancla en percepciones estructurales de desconexión: los ciudadanos, independientemente de su nivel de satisfacción democrática, perciben que los gobernantes no se interesan genuinamente por sus necesidades, como lo refleja el hecho de que eff1 se mantenga consistentemente por debajo del punto medio de la escala en todos los grupos. La combinación de ciudadanos que sienten que entienden la política pero que no confían en que el sistema responda a sus intereses configura un escenario de frustración democrática latente, con potencial para canalizarse en formas de movilización o desafección cívica.
+
+Finalmente, la percepción de corrupción política, que se mantuvo elevada y creciente entre 2008 y 2014 y que siguió siendo mayoritariamente negativa en los años posteriores, actúa como denominador común que conecta todos los hallazgos: la inseguridad, el conflicto no resuelto y la desconfianza institucional se retroalimentan en un entorno donde la ciudadanía percibe que el sistema político está capturado por intereses ajenos al bien común. En este sentido, los datos del Observatorio no solo documentan tendencias, sino que señalan con claridad que los avances en seguridad física serán insuficientes para consolidar una paz duradera mientras no se aborden simultáneamente las brechas territoriales, la legitimidad institucional y la percepción de integridad en el ejercicio del poder político.</p>
 </div>
