@@ -93,15 +93,8 @@ const data = clean.map(d => {
   const exc16 = siNo(d.exc16);
   const exc18 = siNo(d.exc18);
   const exc20 = siNo(d.exc20);
-  // exc07 es escala de texto — se normaliza unificando categorías equivalentes
-  const exc07raw = (d.exc07 == null || d.exc07 === "") ? null : String(d.exc07).trim();
-  const exc07NormMap = {
-    "Ninguno":                   "Nada generalizada",
-    "Menos de la mitad":         "Poco generalizada",
-    "La mitad de los políticos": "Algo generalizada",
-    "Más de la mitad":           "Muy generalizada"
-  };
-  const exc07 = exc07raw === null ? null : (exc07NormMap[exc07raw] ?? exc07raw);
+  // exc07: se conserva el valor original sin unificar (dos escalas históricas distintas)
+  const exc07 = (d.exc07 == null || d.exc07 === "") ? null : String(d.exc07).trim();
 
   const coreFlags = [exc13, exc14, exc15, exc16].filter(x => x !== null);
 
@@ -744,14 +737,24 @@ const YEARS_POR_VAR = {
   exc20: [2012,2013,2014,2016]
 };
 
-// Categorías unificadas: Ninguno=Nada generalizada, Menos de la mitad=Poco generalizada,
-// La mitad de los políticos=Algo generalizada, Más de la mitad=Muy generalizada
-const EXC07_CATS = [
+// Dos escalas históricas diferentes — NO se unifican
+// Periodo A (2004–2014): escala de intensidad
+const EXC07_CATS_A = [
   "Nada generalizada",
   "Poco generalizada",
   "Algo generalizada",
   "Muy generalizada"
 ];
+// Periodo B (2016–2023): escala de proporción de políticos
+const EXC07_CATS_B = [
+  "Ninguno",
+  "Menos de la mitad",
+  "La mitad de los políticos",
+  "Más de la mitad",
+  "Todos"
+];
+const YEARS_EXC07_A = [2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014];
+const YEARS_EXC07_B = [2016,2018,2020,2021,2023];
 ```
 
 ```js
@@ -761,16 +764,22 @@ const selDelitoLinea = Inputs.checkbox(
   { label: "Filtrar delito", value: DELITOS_DEF.map(d => d.label) }
 );
 
-// Checkbox multi-selección de categorías exc07
-const selExc07Linea = Inputs.checkbox(
-  EXC07_CATS,
-  { label: "Filtrar categoría corrupción", value: EXC07_CATS }
+// Checkbox para periodo A (2004–2014)
+const selExc07A = Inputs.checkbox(
+  EXC07_CATS_A,
+  { label: "Filtrar categoría (2004–2014)", value: EXC07_CATS_A }
+);
+// Checkbox para periodo B (2016–2023)
+const selExc07B = Inputs.checkbox(
+  EXC07_CATS_B,
+  { label: "Filtrar categoría (2016–2023)", value: EXC07_CATS_B }
 );
 ```
 
 ```js
 const delitosSeleccionados = Generators.input(selDelitoLinea);
-const exc07Seleccionadas   = Generators.input(selExc07Linea);
+const exc07SelA = Generators.input(selExc07A);
+const exc07SelB = Generators.input(selExc07B);
 ```
 
 ```js
@@ -790,27 +799,32 @@ const serieDelitosFiltrada = delitosSeleccionados.length === 0
 ```
 
 ```js
-// exc07 normalizado en data, categorías unificadas
-const serieExc07 = YEARS_EXC07.flatMap(year => {
+// Serie exc07 Periodo A: 2004–2014 (escala de intensidad)
+const serieExc07A = YEARS_EXC07_A.flatMap(year => {
   const sub = data.filter(d =>
-    d.year === year &&
-    filtroGlobal(d) &&
-    d.exc07 !== null &&
-    d.exc07 !== ""
+    d.year === year && filtroGlobal(d) &&
+    d.exc07 !== null && EXC07_CATS_A.includes(d.exc07)
   );
   if (!sub.length) return [];
   const total = sub.length;
-  const grupos = d3.rollups(sub, v => v.length, d => d.exc07);
-  return grupos.map(([cat, cnt]) => ({
-    year,
-    categoria: cat,
-    pct: (cnt / total) * 100
-  }));
+  return d3.rollups(sub, v => v.length, d => d.exc07)
+    .map(([cat, cnt]) => ({ year, categoria: cat, pct: (cnt / total) * 100 }));
 });
 
-const serieExc07Filtrada = exc07Seleccionadas.length === 0
-  ? serieExc07
-  : serieExc07.filter(d => exc07Seleccionadas.includes(d.categoria));
+// Serie exc07 Periodo B: 2016–2023 (escala de proporción de políticos)
+const serieExc07B = YEARS_EXC07_B.flatMap(year => {
+  const sub = data.filter(d =>
+    d.year === year && filtroGlobal(d) &&
+    d.exc07 !== null && EXC07_CATS_B.includes(d.exc07)
+  );
+  if (!sub.length) return [];
+  const total = sub.length;
+  return d3.rollups(sub, v => v.length, d => d.exc07)
+    .map(([cat, cnt]) => ({ year, categoria: cat, pct: (cnt / total) * 100 }));
+});
+
+const serieExc07AFiltrada = exc07SelA.length === 0 ? serieExc07A : serieExc07A.filter(d => exc07SelA.includes(d.categoria));
+const serieExc07BFiltrada = exc07SelB.length === 0 ? serieExc07B : serieExc07B.filter(d => exc07SelB.includes(d.categoria));
 ```
   ${selDelitoLinea}
 
@@ -853,43 +867,77 @@ Plot.plot({
 
 <p>Con respecto a los resultados muestran una estructura claramente diferenciada entre tipos de delito, en Fraude / estafa aparece como el delito más prevalente durante gran parte del periodo, con niveles significativamente superiores al resto, alcanzando picos cercanos al 25% (2009) y manteniéndose en niveles elevados incluso en años recientes. Esto sugiere un desplazamiento progresivo hacia delitos no violentos pero de alto impacto económico. En Amenazas constituyen el segundo tipo de victimización más frecuente, con una evolución relativamente estable entre 4% y 7%, lo que indica persistencia de formas de intimidación como mecanismo de control o presión. Por otro lado Extorsión presenta niveles moderados (alrededor de 3%–5%), con ligeras variaciones, reflejando su carácter estructural en ciertos contextos territoriales. Si nos referimos a Agresión física y intento de robo a vivienda muestran niveles más bajos y una tendencia general decreciente, lo que podría estar asociado a mejoras en seguridad urbana tradicional o cambios en patrones delictivos. Finalmente otros delitos mantienen una incidencia marginal, pero con presencia constante, lo que evidencia la diversidad de experiencias de victimización no capturadas en las categorías principales. En conjunto, se observa una transición desde delitos más visibles y violentos hacia formas más sofisticadas o menos visibles, particularmente relacionadas con fraude.</p>
 
-  ${selExc07Linea}
+${selExc07A}
 
 ```js
 Plot.plot({
-  title: "Percepción de corrupción entre políticos por año (exc07)",
-  subtitle: "% de respuestas por categoría",
+  title: "Percepción de corrupción entre políticos — Periodo 2004–2014 (exc07)",
+  subtitle: "Escala: Nada generalizada → Muy generalizada · % de respuestas por categoría",
   width,
   height: 360,
   x: {
     label: "Año",
     tickFormat: d => String(d),
-    tickValues: YEARS_EXC07,
+    tickValues: YEARS_EXC07_A,
     grid: true
   },
   y: { label: "%", domain: [0, 70], grid: true },
   color: {
-    domain: EXC07_CATS,
-    scheme: "RdYlGn",
+    domain: EXC07_CATS_A,
+    range: ["#16a34a", "#86efac", "#f97316", "#dc2626"],
     legend: true
   },
   marks: [
     Plot.ruleY([0]),
-    Plot.lineY(serieExc07Filtrada, {
+    Plot.lineY(serieExc07AFiltrada, {
       x: "year", y: "pct", z: "categoria",
       stroke: "categoria", strokeWidth: 2, tip: true
     }),
-    Plot.dotY(serieExc07Filtrada, {
+    Plot.dotY(serieExc07AFiltrada, {
       x: "year", y: "pct", fill: "categoria", r: 4
     }),
-    Plot.text(serieExc07Filtrada, {
-      x: "year",
-      y: "pct",
-      text: d => d.pct.toFixed(2) + "%",
-      dy: -10,
-      fontSize: 10,
-      fill: "white",
-      stroke: "none"
+    Plot.text(serieExc07AFiltrada, {
+      x: "year", y: "pct",
+      text: d => d.pct.toFixed(1) + "%",
+      dy: -10, fontSize: 10, fill: "white", stroke: "none"
+    })
+  ]
+})
+```
+
+${selExc07B}
+
+```js
+Plot.plot({
+  title: "Percepción de corrupción entre políticos — Periodo 2016–2023 (exc07)",
+  subtitle: "Escala: Ninguno → Todos los políticos · % de respuestas por categoría",
+  width,
+  height: 360,
+  x: {
+    label: "Año",
+    tickFormat: d => String(d),
+    tickValues: YEARS_EXC07_B,
+    grid: true
+  },
+  y: { label: "%", domain: [0, 60], grid: true },
+  color: {
+    domain: EXC07_CATS_B,
+    range: ["#16a34a", "#86efac", "#fbbf24", "#f97316", "#dc2626"],
+    legend: true
+  },
+  marks: [
+    Plot.ruleY([0]),
+    Plot.lineY(serieExc07BFiltrada, {
+      x: "year", y: "pct", z: "categoria",
+      stroke: "categoria", strokeWidth: 2, tip: true
+    }),
+    Plot.dotY(serieExc07BFiltrada, {
+      x: "year", y: "pct", fill: "categoria", r: 4
+    }),
+    Plot.text(serieExc07BFiltrada, {
+      x: "year", y: "pct",
+      text: d => d.pct.toFixed(1) + "%",
+      dy: -10, fontSize: 10, fill: "white", stroke: "none"
     })
   ]
 })
